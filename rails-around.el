@@ -1,4 +1,4 @@
-;;;; projectile-rails.el --- Add more rails specfific features to projectile
+;;;; rails-around.el --- Add more rails specific features to projectile
 
 ;; Copyright © 2013 Ian Goodrich
 
