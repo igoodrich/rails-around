@@ -34,12 +34,35 @@
 ;;; Code:
 
 (require 'projectile)
+(require 'fiplr)
 (require 's)
 (require 'dash)
 
+(defun ra/project-root ()
+  (projectile-project-root))
+
+(defun ra/all-project-files ()
+  (projectile-current-project-files))
+
+(defun ra/find-file (prompt file-func)
+  (let ((file (projectile-completing-read prompt
+                                          (funcall file-func))))
+    (find-file (expand-file-name file (ra/project-root)))))
+
+;; (defun ra/project-root ()
+;;   (fiplr-root))
+
+;; (defun ra/all-project-files ()
+;;   (projectile-current-project-files))
+
+;; (defun ra/find-file (prompt file-func)
+;;   (let ((file (projectile-completing-read prompt
+;;                                           (funcall file-func))))
+;;     (find-file (expand-file-name file (ra/project-root)))))
+
 (defun ra/buffer-file-name-or-empty () (or buffer-file-name ""))
 
-(defun ra/true-project-root () (file-truename (projectile-project-root)))
+(defun ra/true-project-root () (file-truename (ra/project-root)))
 
 (defun ra/buffer-file-name-relative-to-project ()
   (s-chop-prefix (ra/true-project-root) (ra/buffer-file-name-or-empty)))
@@ -89,19 +112,19 @@
 (defun ra/test-file-from-model ()
   (ra/test-file-from-file-name
    (concat
-    (projectile-project-root)
+    (ra/project-root)
     (s-replace "models" "test/unit" (ra/buffer-file-name-relative-to-app)))))
 
 (defun ra/test-file-from-app-file ()
   "Given an arbirary app file, assume a corresponding relative path in test/unit"
   (concat
-   (projectile-project-root)
+   (ra/project-root)
    "test/unit/"
    (ra/test-file-from-file-name (ra/buffer-file-name-relative-to-app))))
 
 (defun ra/app-file-in-dir-from-unit-test-file (dir-from-root)
   (concat
-   (projectile-project-root)
+   (ra/project-root)
    dir-from-root
    (ra/base-file-from-test-file-name (ra/buffer-file-name-relative-to-unit-test))))
 
@@ -113,18 +136,18 @@
 
 (defun ra/app-file-from-functional-test-file ()
   (concat
-   (projectile-project-root)
+   (ra/project-root)
    "app/controllers"
    (ra/base-file-from-test-file-name (ra/buffer-file-name-relative-to-functional-test))))
 
 (defun ra/test-file-from-controller ()
   (ra/test-file-from-file-name
    (concat
-    (projectile-project-root)
+    (ra/project-root)
     (s-replace "controllers" "test/functional" (ra/buffer-file-name-relative-to-app)))))
 
 (defun ra/test-file-from-view ()
-  (ra/test-file-from-view-file (projectile-project-root) (ra/buffer-file-name-relative-to-project)))
+  (ra/test-file-from-view-file (ra/project-root) (ra/buffer-file-name-relative-to-project)))
 
 (defun ra/test-file-from-view-file (root view-file-name)
   (concat root
@@ -154,7 +177,7 @@
         ('t (ra/test-file-from-app-file))))
 
 (defun ra/migrations-dir ()
-  (file-name-as-directory (concat (projectile-project-root) "db/migrate")))
+  (file-name-as-directory (concat (ra/project-root) "db/migrate")))
 
 (defun ra/migrations ()
   (directory-files (ra/migrations-dir)))
@@ -187,46 +210,41 @@
   (car (last (-take-while (lambda (file) (not (equal file matching-file))) files))))
 
 (defun ra/current-project-model-files ()
-  (-select (lambda (file) (s-starts-with? "app/models" file)) (projectile-current-project-files)))
+  (-select (lambda (file) (s-starts-with? "app/models" file)) (ra/all-project-files)))
 
 (defun ra/current-project-controller-files ()
-  (-select (lambda (file) (s-starts-with? "app/controllers" file)) (projectile-current-project-files)))
+  (-select (lambda (file) (s-starts-with? "app/controllers" file)) (ra/all-project-files)))
 
 (defun ra/current-project-view-files ()
-  (-select (lambda (file) (s-starts-with? "app/views" file)) (projectile-current-project-files)))
+  (-select (lambda (file) (s-starts-with? "app/views" file)) (ra/all-project-files)))
 
 (defun ra/current-project-js-files ()
   (-select (lambda (file) (or
                            (s-ends-with? ".js" file)
                            (s-ends-with? ".coffee" file)))
-             (projectile-current-project-files)))
+             (ra/all-project-files)))
 
 (defun ra/current-project-style-files ()
   (-select (lambda (file) (or
                            (s-ends-with? ".css" file)
                            (s-ends-with? ".scss" file)
                            (s-ends-with? ".sass" file)
-                           (s-ends-with? ".less" file))) (projectile-current-project-files)))
+                           (s-ends-with? ".less" file))) (ra/all-project-files)))
 
 (defun ra/current-project-test-files ()
-  (-select (lambda (file) (s-starts-with? "test" file)) (projectile-current-project-files)))
+  (-select (lambda (file) (s-starts-with? "test" file)) (ra/all-project-files)))
 
 (defun ra/current-project-lib-files ()
-  (-select (lambda (file) (s-starts-with? "lib" file)) (projectile-current-project-files)))
+  (-select (lambda (file) (s-starts-with? "lib" file)) (ra/all-project-files)))
 
 (defun ra/current-project-factory-files ()
-  (-select (lambda (file) (s-starts-with? "test/factories" file)) (projectile-current-project-files)))
+  (-select (lambda (file) (s-starts-with? "test/factories" file)) (ra/all-project-files)))
 
 (defun ra/current-project-spec-files ()
-  (-select (lambda (file) (s-starts-with? "spec" file)) (projectile-current-project-files)))
+  (-select (lambda (file) (s-starts-with? "spec" file)) (ra/all-project-files)))
 
 (defun ra/current-project-feature-files ()
-  (-select (lambda (file) (s-ends-with? ".feature" file)) (projectile-current-project-files)))
-
-(defun ra/find-special-file (prompt file-func)
-  (let ((file (projectile-completing-read prompt
-                                          (funcall file-func))))
-    (find-file (expand-file-name file (projectile-project-root)))))
+  (-select (lambda (file) (s-ends-with? ".feature" file)) (ra/all-project-files)))
 
 ;; exported
 (defun ra/find-prev-file ()
@@ -243,8 +261,8 @@
           ('t (message "No next file")))))
 
 ;; exported
-(defun ra/find-alternate-file (arg)
-  (interactive "P")
+(defun ra/find-alternate-file ()
+  (interactive)
   (let ((f (ra/alternate-file-name)))
     (cond ((file-exists-p f)
            (if arg (find-file-other-window f)
@@ -252,100 +270,80 @@
           ('t (message "No alternate file exists")))))
 
 ;; exported
-(defun ra/find-alternate-file-other-window (arg)
-  (interactive "P")
+(defun ra/find-alternate-file-other-window ()
+  (interactive)
   (let ((f (ra/alternate-file-name)))
     (cond ((file-exists-p f)
            (find-file-other-window f)
           ('t (message "No alternate file exists"))))))
 
 ;; exported
-(defun ra/find-model (arg)
-  (interactive "P")
-  (when arg
-    (projectile-invalidate-cache))
-  (ra/find-special-file "Find model: " 'ra/current-project-model-files))
+(defun ra/find-model ()
+  (interactive)
+  (ra/find-file "Find model: " 'ra/current-project-model-files))
 
 ;; exported
-(defun ra/find-controller (arg)
-  (interactive "P")
-  (when arg
-    (projectile-invalidate-cache))
-  (ra/find-special-file "Find controller: " 'ra/current-project-controller-files))
+(defun ra/find-controller ()
+  (interactive)
+  (ra/find-file "Find controller: " 'ra/current-project-controller-files))
 
 ;; exported
-(defun ra/find-view (arg)
-  (interactive "P")
-  (when arg
-    (projectile-invalidate-cache))
-  (ra/find-special-file "Find view: " 'ra/current-project-view-files))
+(defun ra/find-view ()
+  (interactive)
+  (ra/find-file "Find view: " 'ra/current-project-view-files))
 
 ;; exported
-(defun ra/find-test (arg)
-  (interactive "P")
-  (when arg
-    (projectile-invalidate-cache))
-  (ra/find-special-file "Find test: " 'ra/current-project-test-files))
+(defun ra/find-test ()
+  (interactive)
+  (ra/find-file "Find test: " 'ra/current-project-test-files))
 
 ;; exported
-(defun ra/find-lib (arg)
-  (interactive "P")
-  (when arg
-    (projectile-invalidate-cache))
-  (ra/find-special-file "Find in lib: " 'ra/current-project-lib-files))
+(defun ra/find-lib ()
+  (interactive)
+  (ra/find-file "Find in lib: " 'ra/current-project-lib-files))
 
 ;; exported
-(defun ra/find-factory (arg)
-  (interactive "P")
-  (when arg
-    (projectile-invalidate-cache))
-  (ra/find-special-file "Find factory: " 'ra/current-project-factory-files))
+(defun ra/find-factory ()
+  (interactive)
+  (ra/find-file "Find factory: " 'ra/current-project-factory-files))
 
 ;; exported
-(defun ra/find-feature (arg)
-  (interactive "P")
-  (when arg
-    (projectile-invalidate-cache))
-  (ra/find-special-file "Find feature: " 'ra/current-project-feature-files))
+(defun ra/find-feature ()
+  (interactive)
+  (ra/find-file "Find feature: " 'ra/current-project-feature-files))
 
 ;; exported
-(defun ra/find-spec (arg)
-  (interactive "P")
-  (when arg
-    (projectile-invalidate-cache))
-  (ra/find-special-file "Find spec: " 'ra/current-project-spec-files))
+(defun ra/find-spec ()
+  (interactive)
+  (ra/find-file "Find spec: " 'ra/current-project-spec-files))
 
 ;; exported
-(defun ra/find-js (arg)
-  (interactive "P")
-  (when arg
-    (projectile-invalidate-cache))
-  (ra/find-special-file "Find js: " 'ra/current-project-js-files))
+(defun ra/find-js ()
+  (interactive)
+  (ra/find-file "Find js: " 'ra/current-project-js-files))
 
 ;; exported
-(defun ra/find-style (arg)
-  (interactive "P")
-  (when arg
-    (projectile-invalidate-cache))
-  (ra/find-special-file "Find style: " 'ra/current-project-style-files))
+(defun ra/find-style ()
+  (interactive)
+  (ra/find-file "Find style: " 'ra/current-project-style-files))
 
 ;; exported
 (defun ra/find-gemfile ()
-  "Find a rails stylesheet in the current projectile project"
+  "Find a rails stylesheet in the current project"
   (interactive)
-  (find-file (concat (projectile-project-root) "Gemfile")))
+  (find-file (concat (ra/project-root) "Gemfile")))
 
 ;; exported
 (defun ra/find-routes-file ()
-  "Find a rails stylesheet in the current projectile project"
+  "Find a rails stylesheet in the current project"
   (interactive)
-  (find-file (concat (projectile-project-root) "config/routes.rb")))
+  (find-file (concat (ra/project-root) "config/routes.rb")))
 
 ;; exported
 (defun ra/find-schema-file ()
-  "Find a rails stylesheet in the current projectile project"
+  "Find a rails stylesheet in the current project"
   (interactive)
-  (find-file (concat (projectile-project-root) "db/schema.rb")))
+  (find-file (concat (ra/project-root) "db/schema.rb")))
 
 (provide 'rails-around)
 
